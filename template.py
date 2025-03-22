@@ -35,7 +35,7 @@ def main():
     s = Solution(test=True)
     print("---TEST---")
     print(f"part 1: {s.part1()}")
-    print(f"part 2: {s.part2()}\n")
+    print(f"part 2: {s.part2()}")
     print(f"part 3: {s.part3()}\n")
     
     s = Solution()
