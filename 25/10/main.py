@@ -3,6 +3,13 @@ import networkx as nx
 import numpy as np
 import copy
 
+import sys
+sys.path.append("../..")
+from utils import manhattanDist
+
+def heuristic(u, v):
+    return manhattanDist(*u, *v)
+
 class Solution():
     def __init__(self, test=False):
         self.test = test
@@ -33,11 +40,11 @@ class Solution():
         return safest
     
     def part2(self):
-        return nx.shortest_path_length(self.G, (-1, -1), (14, 14), weight="w")  
+        return nx.astar_path_length(self.G, (-1, -1), (14, 14), heuristic=heuristic, weight="w")  
     
     def part3(self):
         target = (self.C - 1, self.R - 1)
-        return nx.shortest_path_length(self.G, (-1, -1), target, weight="w")
+        return nx.astar_path_length(self.G, (-1, -1), target, heuristic=heuristic, weight="w")
     
     
 def main():
