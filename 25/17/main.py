@@ -8,6 +8,7 @@ import numpy as np
 import re
 import copy
 from functools import cache
+import matplotlib.pyplot as plt
 
 import sys
 sys.path.append("../..")
@@ -23,15 +24,20 @@ class Solution():
     def parse(self):
         stairs, possible_moves = self.data.split("\n\n")
         self.stairs = {}
-        self.branches = defaultdict(list)
+        self.G = nx.DiGraph()
         for line in stairs.split("\n"):
             stair, steps, branch = line.split(" : ")
-            self.stairs[stair] = tuple(map(int, steps.split(" -> ")))
+            steps = tuple(map(int, steps.split(" -> ")))
+            self.stairs[stair] = steps
+            for step in range(*steps):
+                self.G.add_edge((stair, step), (stair, step + 1))
+                
             if "START" in branch:
                 continue
             _from, to = tuple(re.findall(r"S\d+", branch))
-            self.branches[_from].append((stair, self.stairs[stair][0]))
-            self.branches[stair].append((to, self.stairs[stair][1]))
+            print(_from, to)
+            self.G.add_edge((_from, steps[0]), (stair, steps[0]))
+            self.G.add_edge((stair, steps[1]), (to, steps[1]))
 
         self.possible_moves = tuple(map(int, re.findall(r"\d+", possible_moves)))
     
@@ -44,64 +50,42 @@ class Solution():
             if _from + move <= to:
                 s += self.paths(_from + move, to, possible_moves)
         return s
+    
 
-
+    def bfs_layers(self, source):
+        q = deque([(source, 0)])
+        res = defaultdict(list)
+        while q:
+            node, dept = q.popleft()
+            res[dept].append(node)
+            for next_node in self.G.successors(node):
+                q.append((next_node, dept + 1))
+        return res
+    
+    
     @cache
-    def paths_2(self, staircase, step):
-        # print(staircase, step)
-        top = self.stairs[staircase][1]
-        if step == top and staircase == "S1":
+    def paths_2(self, node):
+        if node == ("S1", self.stairs["S1"][1]):
             return 1
         
+        next_nodes = set()
+        for layer, nodes in self.bfs_layers(node).items():
+            if layer not in self.possible_moves:
+                continue
+            next_nodes.update(nodes)
+        
         s = 0
-        for move in self.possible_moves:
-            
-            
-            q = deque()
-            for branch, branch_step in self.branches[staircase]:
-                q.append((branch, branch_step, step, move))
-            
-            while q:
-                
-                branch, branch_step, current_step, moves_left = q.popleft()
-                
-                #cannot reach branch
-                if branch_step not in range(current_step, current_step + moves_left):
-                    continue
-                # print(branch, branch_step, current_step, moves_left)
-                    
-                if current_step + moves_left - 1 <= self.stairs[branch][1]:
-                    if (staircase, step, branch, current_step + moves_left - 1) not in self.moves_done:
-                        s += self.paths_2(branch, current_step + moves_left - 1)
-                        self.moves_done.add((staircase, step, branch, current_step + moves_left - 1))
-                    
-                steps_to_branch = branch_step - step
-                if steps_to_branch + 1 < moves_left:
-                    moves_left -= (steps_to_branch + 1)
-                    for next_branch, next_branch_step in self.branches[branch]:
-                        q.append((next_branch, next_branch_step, branch_step, moves_left))
-                        
-                        
-                        
-                
-            if step + move <= top:
-                if (staircase, step, staircase, step + move) in self.moves_done:
-                    continue
-                s += self.paths_2(staircase, step + move)
-                self.moves_done.add((staircase, step, staircase, step+move))
-                
-                
+        for next_node in next_nodes:
+            s += self.paths_2(next_node)
         return s
-
         
         
     def part1(self):
         return self.paths(*self.stairs["S1"], self.possible_moves)
     
     def part2(self):
-        self.moves_done = set() #(from_stair, from_step, to_stair, to_step)
-        res = self.paths_2("S1", self.stairs["S1"][0])
-        return res 
+        return self.paths_2(("S1", 0))
+        
     
     def part3(self):
         return None
@@ -113,7 +97,9 @@ def main():
     s = Solution(test=True)
     print("---TEST---")
     print(f"part 1: {s.part1()}")
-    print(f"part 2: {s.part2()}")
+    part2 = s.part2()
+    assert part2 == 113524314072255566781694 
+    print(f"part 2: {part2}")
     print(f"part 3: {s.part3()}\n")
     
     s = Solution()
@@ -121,6 +107,7 @@ def main():
     print(f"part 1: {s.part1()}")
     part2 = s.part2()
     assert part2 != 115790115638940139516655311982964
+    assert part2 != 113632294802551734246135778434644
     print(f"part 2: {part2}")
     print(f"part 3: {s.part3()}")
     
